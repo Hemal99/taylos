@@ -1,4 +1,5 @@
 import { MongoClient, Db } from 'mongodb';
+import { createAdminUserIfNeeded } from './users';
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
@@ -13,6 +14,7 @@ export async function connectToDatabase(): Promise<{ db: Db | null }> {
 
   if (!MONGODB_URI || !MONGODB_DB_NAME) {
       console.warn('MongoDB environment variables not set. Falling back to in-memory data.');
+      await createAdminUserIfNeeded();
       return { db: null };
   }
 
@@ -24,6 +26,7 @@ export async function connectToDatabase(): Promise<{ db: Db | null }> {
     cachedClient = client;
     cachedDb = db;
     
+    await createAdminUserIfNeeded();
     console.log("Successfully connected to MongoDB.");
     return { db };
 
@@ -31,6 +34,7 @@ export async function connectToDatabase(): Promise<{ db: Db | null }> {
     console.warn("Failed to connect to MongoDB. Falling back to in-memory data. Please check your MONGODB_URI.");
     cachedClient = null;
     cachedDb = null;
+    await createAdminUserIfNeeded();
     return { db: null };
   }
 }

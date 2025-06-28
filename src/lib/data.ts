@@ -1,4 +1,4 @@
-import { type Product, type Order } from './types';
+import { type Product, type Order, type User } from './types';
 
 export let products: Product[] = [
   {
@@ -92,3 +92,4 @@ export let products: Product[] = [
 ];
 
 export let orders: Order[] = [];
+export let users: User[] = [];

@@ -32,3 +32,9 @@ export interface Order {
   status: OrderStatus;
   createdAt: Date;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  passwordHash: string;
+}
