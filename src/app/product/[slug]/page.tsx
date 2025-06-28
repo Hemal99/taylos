@@ -7,8 +7,8 @@ import { BrowsingHistoryTracker } from '@/components/browsing-history-tracker';
 import { ProductRecommendations } from '@/components/product-recommendations';
 import { Badge } from '@/components/ui/badge';
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const product = getProductBySlug(params.slug);
+export default async function ProductPage({ params }: { params: { slug: string } }) {
+  const product = await getProductBySlug(params.slug);
 
   if (!product) {
     notFound();

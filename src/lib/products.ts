@@ -1,68 +1,113 @@
 import { revalidatePath } from 'next/cache';
 import { type Product } from './types';
 import * as data from './data';
+import { connectToDatabase } from './mongodb';
+import { ObjectId, WithId } from 'mongodb';
 
-export function getProducts(options: { includeHidden?: boolean } = {}): Product[] {
-  if (options.includeHidden) {
-    return data.products;
-  }
-  return data.products.filter(p => p.isVisible);
+function mapMongoId<T>(doc: WithId<T>): T & { id: string } {
+    const { _id, ...rest } = doc;
+    return { id: _id.toHexString(), ...rest } as T & { id: string };
 }
 
-export function getProductById(id: string): Product | undefined {
-    return data.products.find((p) => p.id === id);
+async function seedDatabase() {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection('products');
+    const count = await productsCollection.countDocuments();
+    if (count === 0) {
+        console.log('Seeding database with initial products...');
+        const productsToSeed = data.products.map(({ id, ...rest }) => rest);
+        await productsCollection.insertMany(productsToSeed);
+    }
 }
 
-export function getProductBySlug(slug: string): Product | undefined {
-  const product = data.products.find((p) => p.slug === slug);
-  if (product && !product.isVisible) {
-    return undefined;
-  }
-  return product;
+export async function getProducts(options: { includeHidden?: boolean } = {}): Promise<Product[]> {
+    const { db } = await connectToDatabase();
+    await seedDatabase();
+    const productsCollection = db.collection<Product>('products');
+    
+    const query = options.includeHidden ? {} : { isVisible: true };
+
+    const products = await productsCollection.find(query).toArray();
+    return products.map(mapMongoId);
 }
 
-export function addProduct(productData: Omit<Product, 'id' | 'slug' | 'image'>) {
-    const newProduct: Product = {
-        id: new Date().getTime().toString(),
+export async function getProductById(id: string): Promise<Product | undefined> {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection<Product>('products');
+    const product = await productsCollection.findOne({ _id: new ObjectId(id) });
+    return product ? mapMongoId(product) : undefined;
+}
+
+export async function getProductBySlug(slug: string): Promise<Product | undefined> {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection<Product>('products');
+    const product = await productsCollection.findOne({ slug });
+
+    if (product && !product.isVisible) {
+      return undefined;
+    }
+    return product ? mapMongoId(product) : undefined;
+}
+
+export async function addProduct(productData: Omit<Product, 'id' | 'slug' | 'image'>): Promise<Product> {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection<Product>('products');
+
+    const newProduct: Omit<Product, 'id'> = {
         slug: productData.name.toLowerCase().replace(/\s+/g, '-'),
         image: `https://placehold.co/600x600/cccccc/FFFFFF.png?text=${encodeURIComponent(productData.name)}`,
         ...productData,
     };
-    data.products.unshift(newProduct);
+    const result = await productsCollection.insertOne(newProduct as Product);
     revalidatePath('/admin/manage-inventory');
     revalidatePath('/');
-    return newProduct;
+    return { ...newProduct, id: result.insertedId.toHexString() };
 }
 
-export function updateProduct(id: string, productData: Partial<Product>) {
-    const product = data.products.find(p => p.id === id);
-    if (product) {
-        const oldSlug = product.slug;
-        const newSlug = productData.name ? productData.name.toLowerCase().replace(/\s+/g, '-') : oldSlug;
-        
-        data.products = data.products.map(p => p.id === id ? { ...p, ...productData, slug: newSlug } : p);
-
-        revalidatePath('/admin/manage-inventory');
-        revalidatePath('/');
-        if (oldSlug !== newSlug) {
-            revalidatePath(`/product/${oldSlug}`);
-        }
-        revalidatePath(`/product/${newSlug}`);
+export async function updateProduct(id: string, productData: Partial<Product>) {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection('products');
+    
+    const oldProduct = await productsCollection.findOne({ _id: new ObjectId(id) });
+    if (!oldProduct) return;
+    
+    const oldSlug = oldProduct.slug;
+    const newSlug = productData.name ? productData.name.toLowerCase().replace(/\s+/g, '-') : oldSlug;
+    
+    await productsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { ...productData, slug: newSlug } }
+    );
+    
+    revalidatePath('/admin/manage-inventory');
+    revalidatePath('/');
+    if (oldSlug !== newSlug) {
+        revalidatePath(`/product/${oldSlug}`);
     }
+    revalidatePath(`/product/${newSlug}`);
 }
 
-export function deleteProduct(id: string) {
-    data.products = data.products.filter(p => p.id !== id);
+export async function deleteProduct(id: string) {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection('products');
+    await productsCollection.deleteOne({ _id: new ObjectId(id) });
+
     revalidatePath('/admin/manage-inventory');
     revalidatePath('/');
 }
 
-export function decreaseProductQuantity(items: { id: string; quantity: number }[]) {
-    items.forEach(item => {
-        const product = getProductById(item.id);
-        if (product) {
-            const newQuantity = product.availableQuantity - item.quantity;
-            updateProduct(item.id, { availableQuantity: newQuantity < 0 ? 0 : newQuantity });
+export async function decreaseProductQuantity(items: { id: string; quantity: number }[]) {
+    const { db } = await connectToDatabase();
+    const productsCollection = db.collection('products');
+    
+    const bulkOperations = items.map(item => ({
+        updateOne: {
+            filter: { _id: new ObjectId(item.id) },
+            update: { $inc: { availableQuantity: -item.quantity } }
         }
-    });
+    }));
+    
+    if (bulkOperations.length > 0) {
+        await productsCollection.bulkWrite(bulkOperations);
+    }
 }

@@ -24,7 +24,7 @@ export async function addProductAction(data: FormData) {
     }
 
     try {
-        addProductToDb(validatedFields.data);
+        await addProductToDb(validatedFields.data);
         return { success: 'Product added successfully!' };
     } catch (e) {
         return { error: 'Failed to add product.' };
@@ -41,7 +41,7 @@ export async function updateProductAction(id: string, data: FormData) {
     }
     
     try {
-        updateProductInDb(id, validatedFields.data);
+        await updateProductInDb(id, validatedFields.data);
         return { success: 'Product updated successfully!' };
     } catch (e) {
         return { error: 'Failed to update product.' };
@@ -50,7 +50,7 @@ export async function updateProductAction(id: string, data: FormData) {
 
 export async function deleteProductAction(id: string) {
     try {
-        deleteProductFromDb(id);
+        await deleteProductFromDb(id);
         return { success: 'Product deleted successfully!' };
     } catch (e) {
         return { error: 'Failed to delete product.' };

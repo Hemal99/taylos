@@ -12,8 +12,8 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { InventoryActions } from './inventory-actions';
 
-export default function ManageInventoryPage() {
-  const products = getProducts({ includeHidden: true });
+export default async function ManageInventoryPage() {
+  const products = await getProducts({ includeHidden: true });
 
   return (
     <div>

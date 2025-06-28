@@ -11,8 +11,8 @@ import {
 import { formatPrice } from '@/lib/utils';
 import { OrderStatusUpdater } from './order-status-updater';
 
-export default function ManageOrdersPage() {
-  const orders = getOrders();
+export default async function ManageOrdersPage() {
+  const orders = await getOrders();
 
   return (
     <div>

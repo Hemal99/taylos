@@ -4,8 +4,8 @@ import { getProducts } from "@/lib/products";
 import { type Product } from "@/lib/types";
 import { BrowsingHistoryRecommendations } from "@/components/browsing-history-recommendations";
 
-export default function Home() {
-  const products = getProducts();
+export default async function Home() {
+  const products = await getProducts();
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-8 font-headline">

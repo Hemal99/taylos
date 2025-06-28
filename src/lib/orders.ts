@@ -1,11 +1,19 @@
 import { revalidatePath } from 'next/cache';
 import { type CartItem, type Order, type OrderItem, type OrderStatus } from './types';
 import { decreaseProductQuantity } from './products';
-import * as data from './data';
+import { connectToDatabase } from './mongodb';
+import { ObjectId, WithId } from 'mongodb';
 
-export function getOrders(): Order[] {
-  // Return a copy to prevent mutations from leaking
-  return [...data.orders].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+function mapMongoId<T>(doc: WithId<T>): T & { id: string } {
+  const { _id, ...rest } = doc;
+  return { id: _id.toHexString(), ...rest } as T & { id: string };
+}
+
+export async function getOrders(): Promise<Order[]> {
+    const { db } = await connectToDatabase();
+    const ordersCollection = db.collection<Order>('orders');
+    const orders = await ordersCollection.find().sort({ createdAt: -1 }).toArray();
+    return orders.map(mapMongoId);
 }
 
 export async function createOrder(
@@ -13,8 +21,10 @@ export async function createOrder(
   cartItems: CartItem[],
   cartTotal: number
 ): Promise<Order> {
-  const newOrder: Order = {
-    id: new Date().getTime().toString(),
+  const { db } = await connectToDatabase();
+  const ordersCollection = db.collection<Order>('orders');
+
+  const newOrder: Omit<Order, 'id'> = {
     customerName: customerDetails.name,
     customerEmail: customerDetails.email,
     items: cartItems.map(
@@ -30,25 +40,30 @@ export async function createOrder(
     createdAt: new Date(),
   };
 
-  data.orders.unshift(newOrder);
-
+  const result = await ordersCollection.insertOne(newOrder as Order);
+  
   const itemsToDecrease = cartItems.map(item => ({
     id: item.id,
     quantity: item.quantity,
   }));
-  decreaseProductQuantity(itemsToDecrease);
+  await decreaseProductQuantity(itemsToDecrease);
 
   revalidatePath('/admin/manage-orders');
 
-  return newOrder;
+  return { ...newOrder, id: result.insertedId.toHexString() };
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  const order = data.orders.find(o => o.id === orderId);
-  if (order) {
-    order.status = status;
-    revalidatePath('/admin/manage-orders');
-    return { success: true };
-  }
-  return { success: false, error: 'Order not found.' };
+    const { db } = await connectToDatabase();
+    const ordersCollection = db.collection('orders');
+    const result = await ordersCollection.updateOne(
+        { _id: new ObjectId(orderId) },
+        { $set: { status: status } }
+    );
+    
+    if (result.modifiedCount > 0) {
+        revalidatePath('/admin/manage-orders');
+        return { success: true };
+    }
+    return { success: false, error: 'Order not found or status is the same.' };
 }
