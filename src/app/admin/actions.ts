@@ -3,7 +3,6 @@
 import { addProduct as addProductToDb, updateProduct as updateProductInDb, deleteProduct as deleteProductFromDb } from '@/lib/products';
 import { type Product } from '@/lib/types';
 import { z } from 'zod';
-import { uploadImageToFirebase } from '@/lib/firebase';
 
 const productSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -39,8 +38,11 @@ export async function addProductAction(formData: FormData) {
     }
 
     try {
-        const imageUrl = await uploadImageToFirebase(imageFile, 'products');
-        await addProductToDb({ ...validatedFields.data, image: imageUrl });
+        const arrayBuffer = await imageFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const dataUri = `data:${imageFile.type};base64,${buffer.toString('base64')}`;
+
+        await addProductToDb({ ...validatedFields.data, image: dataUri });
         return { success: 'Product added successfully!' };
     } catch (e: any) {
         return { error: e.message || 'Failed to add product.' };
@@ -69,7 +71,9 @@ export async function updateProductAction(id: string, formData: FormData) {
 
     try {
         if (imageFile && imageFile.size > 0) {
-            updateData.image = await uploadImageToFirebase(imageFile, 'products');
+            const arrayBuffer = await imageFile.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            updateData.image = `data:${imageFile.type};base64,${buffer.toString('base64')}`;
         }
         await updateProductInDb(id, updateData);
         return { success: 'Product updated successfully!' };
