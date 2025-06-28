@@ -3,6 +3,7 @@
 import { addProduct as addProductToDb, updateProduct as updateProductInDb, deleteProduct as deleteProductFromDb } from '@/lib/products';
 import { type Product } from '@/lib/types';
 import { z } from 'zod';
+import { uploadImageToFirebase } from '@/lib/firebase';
 
 const productSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -10,29 +11,52 @@ const productSchema = z.object({
     price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
     availableQuantity: z.coerce.number().int().min(0, 'Quantity must be a non-negative integer'),
     imageHint: z.string().optional(),
-    isVisible: z.boolean().default(false),
+    isVisible: z.preprocess((val) => val === 'true' || val === true, z.boolean()),
 });
 
 
-export async function addProductAction(data: unknown) {
-    const validatedFields = productSchema.safeParse(data);
+export async function addProductAction(formData: FormData) {
+    const rawData = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        price: formData.get('price'),
+        availableQuantity: formData.get('availableQuantity'),
+        isVisible: formData.get('isVisible'),
+        imageHint: formData.get('imageHint'),
+    };
+    const validatedFields = productSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
+        console.error(validatedFields.error.flatten().fieldErrors);
         return {
             error: "Invalid data provided. Please check the form.",
         };
     }
 
+    const imageFile = formData.get('image') as File | null;
+    if (!imageFile || imageFile.size === 0) {
+        return { error: 'Product image is required.' };
+    }
+
     try {
-        await addProductToDb(validatedFields.data as Omit<Product, 'id' | 'slug' | 'image'>);
+        const imageUrl = await uploadImageToFirebase(imageFile, 'products');
+        await addProductToDb({ ...validatedFields.data, image: imageUrl });
         return { success: 'Product added successfully!' };
-    } catch (e) {
-        return { error: 'Failed to add product.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to add product.' };
     }
 }
 
-export async function updateProductAction(id: string, data: unknown) {
-    const validatedFields = productSchema.safeParse(data);
+export async function updateProductAction(id: string, formData: FormData) {
+    const rawData = {
+        name: formData.get('name'),
+        description: formData.get('description'),
+        price: formData.get('price'),
+        availableQuantity: formData.get('availableQuantity'),
+        isVisible: formData.get('isVisible'),
+        imageHint: formData.get('imageHint'),
+    };
+    const validatedFields = productSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         return {
@@ -40,11 +64,17 @@ export async function updateProductAction(id: string, data: unknown) {
         };
     }
     
+    const updateData: Partial<Product> = { ...validatedFields.data };
+    const imageFile = formData.get('image') as File | null;
+
     try {
-        await updateProductInDb(id, validatedFields.data);
+        if (imageFile && imageFile.size > 0) {
+            updateData.image = await uploadImageToFirebase(imageFile, 'products');
+        }
+        await updateProductInDb(id, updateData);
         return { success: 'Product updated successfully!' };
-    } catch (e) {
-        return { error: 'Failed to update product.' };
+    } catch (e: any) {
+        return { error: e.message || 'Failed to update product.' };
     }
 }
 

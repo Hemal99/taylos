@@ -26,7 +26,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -43,6 +42,7 @@ const productSchema = z.object({
   availableQuantity: z.coerce.number().int().min(0, 'Quantity must be a non-negative integer'),
   imageHint: z.string().optional(),
   isVisible: z.boolean().default(true),
+  image: z.any().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -68,6 +68,7 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             availableQuantity: product.availableQuantity,
             imageHint: product.imageHint || '',
             isVisible: product.isVisible,
+            image: undefined,
           }
         : {
             name: '',
@@ -76,21 +77,34 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             availableQuantity: 0,
             imageHint: '',
             isVisible: true,
+            image: undefined,
           },
   });
 
   const onSubmit = (values: ProductFormValues) => {
     startTransition(async () => {
+      const formData = new FormData();
+      formData.append('name', values.name);
+      formData.append('description', values.description);
+      formData.append('price', String(values.price));
+      formData.append('availableQuantity', String(values.availableQuantity));
+      formData.append('isVisible', String(values.isVisible));
+      if (values.imageHint) formData.append('imageHint', values.imageHint);
+      
+      if (values.image && values.image.length > 0) {
+        formData.append('image', values.image[0]);
+      }
+
       const result =
         mode === 'add'
-          ? await addProductAction(values)
-          : await updateProductAction(product!.id, values);
+          ? await addProductAction(formData)
+          : await updateProductAction(product!.id, formData);
       
       if (result?.success) {
         toast({ title: 'Success', description: result.success });
         setIsFormOpen(false);
         if (mode === 'add') {
-          form.reset({ isVisible: true, name: '', description: '', price: 0, availableQuantity: 0, imageHint: '' });
+          form.reset({ isVisible: true, name: '', description: '', price: 0, availableQuantity: 0, imageHint: '', image: undefined });
         }
       } else {
         toast({ title: 'Error', description: result?.error || "An unexpected error occurred.", variant: 'destructive' });
@@ -139,6 +153,23 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
                   <FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
+              <FormField
+                control={form.control}
+                name="image"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Image</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        accept="image/png, image/jpeg, image/webp"
+                        onChange={(e) => field.onChange(e.target.files)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField control={form.control} name="imageHint" render={({ field }) => (
                 <FormItem><FormLabel>Image Hint</FormLabel><FormControl><Input placeholder="e.g. blue shirt" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
@@ -219,6 +250,24 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
                       <FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                   </div>
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg, image/webp"
+                            onChange={(e) => field.onChange(e.target.files)}
+                          />
+                        </FormControl>
+                        <FormDescription>Leave blank to keep the current image.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField control={form.control} name="imageHint" render={({ field }) => (
                     <FormItem><FormLabel>Image Hint</FormLabel><FormControl><Input placeholder="e.g. blue shirt" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />

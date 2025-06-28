@@ -77,12 +77,11 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
     return product ? mapMongoId(product) : undefined;
 }
 
-export async function addProduct(productData: Omit<Product, 'id' | 'slug' | 'image'>): Promise<Product> {
+export async function addProduct(productData: Omit<Product, 'id' | 'slug'>): Promise<Product> {
     const { db } = await connectToDatabase();
 
     const newProductStub: Omit<Product, 'id'> = {
         slug: productData.name.toLowerCase().replace(/\s+/g, '-'),
-        image: `https://placehold.co/600x600/cccccc/FFFFFF.png?text=${encodeURIComponent(productData.name)}`,
         ...productData,
     };
 
@@ -137,9 +136,14 @@ export async function updateProduct(id: string, productData: Partial<Product>) {
     const oldSlug = oldProduct.slug;
     const newSlug = productData.name ? productData.name.toLowerCase().replace(/\s+/g, '-') : oldSlug;
     
+    const updatePayload = { ...productData };
+    if (productData.name) {
+        updatePayload.slug = newSlug;
+    }
+
     await productsCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $set: { ...productData, slug: newSlug } }
+        { $set: updatePayload }
     );
     
     revalidatePath('/admin/manage-inventory');
