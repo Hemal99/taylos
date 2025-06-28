@@ -1,9 +1,8 @@
-
 'use server';
 
 import { productRecommendations } from '@/ai/flows/product-recommendations';
 import { getProductRecommendations as getProductRecommendationsFromHistory } from '@/ai/flows/product-recommendations-from-history';
-import { decreaseProductQuantity } from '@/lib/products';
+import { createOrder } from '@/lib/orders';
 import { type CartItem } from '@/lib/types';
 
 export async function getRecommendations(productDescriptions: string[]) {
@@ -32,13 +31,13 @@ export async function getRecommendationsFromHistory(browsingHistory: string[]) {
   }
 }
 
-export async function processOrder(cartItems: CartItem[]) {
+export async function placeOrderAction(
+  customerDetails: { name: string; email: string },
+  cartItems: CartItem[],
+  cartTotal: number
+) {
     try {
-        const itemsToDecrease = cartItems.map(item => ({
-            id: item.id,
-            quantity: item.quantity,
-        }));
-        decreaseProductQuantity(itemsToDecrease);
+        await createOrder(customerDetails, cartItems, cartTotal);
         return { success: true, error: null };
     } catch (e: any) {
         console.error(e);

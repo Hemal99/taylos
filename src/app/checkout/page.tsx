@@ -10,14 +10,16 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { processOrder } from '../actions';
-import { useTransition } from 'react';
+import { placeOrderAction } from '../actions';
+import { useState, useTransition } from 'react';
 
 export default function CheckoutPage() {
   const { cartItems, cartTotal, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [customerName, setCustomerName] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +33,7 @@ export default function CheckoutPage() {
     }
     
     startTransition(async () => {
-        const result = await processOrder(cartItems);
+        const result = await placeOrderAction({name: customerName, email: customerEmail}, cartItems, cartTotal);
         if (result.success) {
             clearCart();
             router.push('/order-confirmation');
@@ -59,11 +61,11 @@ export default function CheckoutPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" placeholder="John Doe" required />
+                <Input id="name" placeholder="John Doe" required value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" required />
+                <Input id="email" type="email" placeholder="you@example.com" required value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
