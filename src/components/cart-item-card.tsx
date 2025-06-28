@@ -23,7 +23,7 @@ export function CartItemCard({ item }: CartItemProps) {
           alt={item.name}
           fill
           className="object-cover"
-          data-ai-hint="fashion clothing"
+          data-ai-hint={item.imageHint}
         />
       </div>
       <div className="flex flex-1 flex-col gap-1">

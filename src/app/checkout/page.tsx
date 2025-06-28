@@ -78,7 +78,7 @@ export default function CheckoutPage() {
                 cartItems.map(item => (
                   <div key={item.id} className="flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                      <Image src={item.image} alt={item.name} width={48} height={48} className="rounded-md" data-ai-hint="fashion clothing" />
+                      <Image src={item.image} alt={item.name} width={48} height={48} className="rounded-md" data-ai-hint={item.imageHint} />
                       <div>
                         <p>{item.name}</p>
                         <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>

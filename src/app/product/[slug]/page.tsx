@@ -25,7 +25,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
             width={800}
             height={800}
             className="h-full w-full object-cover object-center"
-            data-ai-hint="fashion clothing"
+            data-ai-hint={product.imageHint}
           />
         </div>
         <div className="flex flex-col justify-center">
