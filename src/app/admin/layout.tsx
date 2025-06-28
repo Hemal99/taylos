@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Package, ShoppingCart, Home } from 'lucide-react';
+import { Package, ShoppingCart, Home, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { logoutAction } from './login/actions';
 
 export default function AdminLayout({
   children,
@@ -11,6 +13,11 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  // Don't render layout for the login page
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -51,11 +58,17 @@ export default function AdminLayout({
            <div className="mt-auto p-4">
                <Link
                 href="/"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary mb-2"
                >
                 <Home className="h-4 w-4" />
                 Back to Store
                </Link>
+               <form action={logoutAction}>
+                <Button variant="ghost" className="w-full justify-start px-3 py-2 text-muted-foreground">
+                    <LogOut className="h-4 w-4 mr-3"/>
+                    Sign Out
+                </Button>
+               </form>
            </div>
         </div>
       </div>
