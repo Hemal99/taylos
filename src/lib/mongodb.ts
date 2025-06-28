@@ -1,33 +1,36 @@
 import { MongoClient, Db } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME;
-
-if (!MONGODB_URI) {
-    console.warn('Please define the MONGODB_URI environment variable inside .env');
-}
-if (!MONGODB_DB_NAME) {
-    console.warn('Please define the MONGODB_DB_NAME environment variable inside .env');
-}
-
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
 
-export async function connectToDatabase() {
+export async function connectToDatabase(): Promise<{ db: Db | null }> {
   if (cachedClient && cachedDb) {
     return { db: cachedDb };
   }
   
+  const MONGODB_URI = process.env.MONGODB_URI;
+  const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME;
+
   if (!MONGODB_URI || !MONGODB_DB_NAME) {
-      throw new Error('Missing MongoDB environment variables. Please add MONGODB_URI and MONGODB_DB_NAME to your .env file.');
+      console.warn('MongoDB environment variables not set. Falling back to in-memory data.');
+      return { db: null };
   }
 
-  const client = new MongoClient(MONGODB_URI);
-  await client.connect();
-  const db = client.db(MONGODB_DB_NAME);
+  try {
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    const db = client.db(MONGODB_DB_NAME);
 
-  cachedClient = client;
-  cachedDb = db;
+    cachedClient = client;
+    cachedDb = db;
+    
+    console.log("Successfully connected to MongoDB.");
+    return { db };
 
-  return { db };
+  } catch (error) {
+    console.error("Failed to connect to MongoDB. Falling back to in-memory data. Please check your MONGODB_URI.");
+    cachedClient = null;
+    cachedDb = null;
+    return { db: null };
+  }
 }
