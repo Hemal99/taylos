@@ -1,4 +1,4 @@
-# **App Name**: ThreadBase
+# **App Name**: Taylos
 
 ## Core Features:
 

@@ -9,7 +9,7 @@ import { CartProvider } from "@/context/cart-provider";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "ThreadBase",
+  title: "Taylos",
   description: "The modern destination for curated fashion.",
 };
 

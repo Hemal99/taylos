@@ -1,6 +1,6 @@
-# ThreadBase E-Commerce Application
+# Taylos E-Commerce Application
 
-Welcome to ThreadBase, a modern, full-featured e-commerce application built with Next.js and enhanced with generative AI. This project serves as a comprehensive example of a production-ready online store, complete with a customer-facing storefront and a secure administrative panel.
+Welcome to Taylos, a modern, full-featured e-commerce application built with Next.js and enhanced with generative AI. This project serves as a comprehensive example of a production-ready online store, complete with a customer-facing storefront and a secure administrative panel.
 
 This application was developed iteratively within Firebase Studio, demonstrating a Rapid Application Development (RAD) approach through a collaborative, conversational process.
 
@@ -43,7 +43,7 @@ This application was developed iteratively within Firebase Studio, demonstrating
     MONGODB_URI=mongodb+srv://<user>:<password>@<cluster-url>/
     
     # The name of your database
-    MONGODB_DB_NAME=threadbase
+    MONGODB_DB_NAME=Taylos
     
     # A strong, unique secret for signing JWTs
     JWT_SECRET_KEY=your-super-secret-jwt-key

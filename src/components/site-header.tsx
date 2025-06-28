@@ -12,7 +12,7 @@ export function SiteHeader() {
         <div className="flex gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <span className="inline-block font-bold text-2xl font-headline tracking-tighter">
-              ThreadBase
+              Taylos
             </span>
           </Link>
         </div>
