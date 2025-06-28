@@ -11,6 +11,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/5E7CE2/FFFFFF.png',
     imageHint: 'denim jacket',
     availableQuantity: 10,
+    isVisible: true,
   },
   {
     id: '2',
@@ -21,6 +22,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/A2C4C3/FFFFFF.png',
     imageHint: 'linen shirt',
     availableQuantity: 15,
+    isVisible: true,
   },
   {
     id: '3',
@@ -31,6 +33,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/D2B48C/333333.png',
     imageHint: 'chinos pants',
     availableQuantity: 20,
+    isVisible: true,
   },
   {
     id: '4',
@@ -41,6 +44,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/5D4037/FFFFFF.png',
     imageHint: 'leather boots',
     availableQuantity: 8,
+    isVisible: true,
   },
   {
     id: '5',
@@ -51,6 +55,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/808080/FFFFFF.png',
     imageHint: 'wool sweater',
     availableQuantity: 12,
+    isVisible: true,
   },
   {
     id: '6',
@@ -61,6 +66,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/E57373/FFFFFF.png',
     imageHint: 'graphic t-shirt',
     availableQuantity: 25,
+    isVisible: true,
   },
   {
     id: '7',
@@ -71,6 +77,7 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/424242/FFFFFF.png',
     imageHint: 'wool blazer',
     availableQuantity: 5,
+    isVisible: true,
   },
   {
     id: '8',
@@ -81,11 +88,15 @@ let products: Product[] = [
     image: 'https://placehold.co/600x600/37474F/FFFFFF.png',
     imageHint: 'performance joggers',
     availableQuantity: 18,
+    isVisible: true,
   },
 ];
 
-export function getProducts(): Product[] {
-  return products;
+export function getProducts(options: { includeHidden?: boolean } = {}): Product[] {
+  if (options.includeHidden) {
+    return products;
+  }
+  return products.filter(p => p.isVisible);
 }
 
 export function getProductById(id: string): Product | undefined {
@@ -93,17 +104,21 @@ export function getProductById(id: string): Product | undefined {
 }
 
 export function getProductBySlug(slug: string): Product | undefined {
-  return products.find((p) => p.slug === slug);
+  const product = products.find((p) => p.slug === slug);
+  if (product && !product.isVisible) {
+    return undefined;
+  }
+  return product;
 }
 
 export function addProduct(productData: Omit<Product, 'id' | 'slug' | 'image'>) {
     const newProduct: Product = {
-        ...productData,
-        id: (products.length + 1).toString(),
+        id: new Date().getTime().toString(),
         slug: productData.name.toLowerCase().replace(/\s+/g, '-'),
-        image: 'https://placehold.co/600x600/cccccc/FFFFFF.png',
+        image: `https://placehold.co/600x600/cccccc/FFFFFF.png?text=${encodeURIComponent(productData.name)}`,
+        ...productData,
     };
-    products.push(newProduct);
+    products.unshift(newProduct);
     revalidatePath('/admin/manage-inventory');
     revalidatePath('/');
     return newProduct;

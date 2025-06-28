@@ -1,5 +1,4 @@
 import { getProducts } from '@/lib/products';
-import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -8,14 +7,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PlusCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { InventoryActions } from './inventory-actions';
 
 export default function ManageInventoryPage() {
-  const products = getProducts();
+  const products = getProducts({ includeHidden: true });
 
   return (
     <div>
@@ -34,6 +32,7 @@ export default function ManageInventoryPage() {
               <TableHead className="hidden w-[100px] sm:table-cell">Image</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Visibility</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead>
@@ -58,6 +57,11 @@ export default function ManageInventoryPage() {
                 <TableCell>
                   <Badge variant={product.availableQuantity > 0 ? 'secondary' : 'destructive'}>
                     {product.availableQuantity > 0 ? 'In Stock' : 'Out of Stock'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={product.isVisible ? 'default' : 'outline'}>
+                    {product.isVisible ? 'Visible' : 'Hidden'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">{formatPrice(product.price)}</TableCell>

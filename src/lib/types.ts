@@ -7,6 +7,7 @@ export interface Product {
   slug: string;
   imageHint: string;
   availableQuantity: number;
+  isVisible: boolean;
 }
 
 export interface CartItem extends Product {

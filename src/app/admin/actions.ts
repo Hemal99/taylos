@@ -10,6 +10,7 @@ const productSchema = z.object({
     price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
     availableQuantity: z.coerce.number().int().min(0, 'Quantity must be a non-negative integer'),
     imageHint: z.string().optional(),
+    isVisible: z.coerce.boolean().default(false),
 });
 
 

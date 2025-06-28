@@ -29,6 +29,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { MoreHorizontal, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { addProductAction, updateProductAction, deleteProductAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +41,7 @@ const productSchema = z.object({
   price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
   availableQuantity: z.coerce.number().int().min(0, 'Quantity must be a non-negative integer'),
   imageHint: z.string().optional(),
+  isVisible: z.boolean().default(true),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -64,6 +66,7 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             price: product.price,
             availableQuantity: product.availableQuantity,
             imageHint: product.imageHint,
+            isVisible: product.isVisible,
           }
         : {
             name: '',
@@ -71,15 +74,25 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             price: 0,
             availableQuantity: 0,
             imageHint: '',
+            isVisible: true,
           },
   });
 
   const onSubmit = (values: ProductFormValues) => {
     startTransition(async () => {
       const formData = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        formData.append(key, String(value));
+      // Manually handle boolean for FormData
+      const { isVisible, ...otherValues } = values;
+      
+      Object.entries(otherValues).forEach(([key, value]) => {
+          formData.append(key, String(value));
       });
+      
+      // The switch sends "on" when checked, which is what we need for the server action.
+      // If it's not checked, we don't append it, and the server action will use the default.
+      if (isVisible) {
+          formData.append('isVisible', 'on');
+      }
 
       const result =
         mode === 'add'
@@ -89,7 +102,9 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
       if (result?.success) {
         toast({ title: 'Success', description: result.success });
         setIsFormOpen(false);
-        form.reset();
+        form.reset(
+          mode === 'add' ? { isVisible: true, name: '', description: '', price: 0, availableQuantity: 0, imageHint: '' } : undefined
+        );
       } else {
         toast({ title: 'Error', description: "An unexpected error occurred.", variant: 'destructive' });
       }
@@ -122,7 +137,6 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             <DialogDescription>Fill in the details for the new product.</DialogDescription>
           </DialogHeader>
           <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Form Fields */}
             <div className="space-y-2">
               <Label htmlFor="name">Product Name</Label>
               <Input id="name" {...form.register('name')} />
@@ -148,6 +162,18 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
              <div className="space-y-2">
               <Label htmlFor="imageHint">Image Hint</Label>
               <Input id="imageHint" {...form.register('imageHint')} placeholder="e.g. blue shirt"/>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3 mt-2">
+              <div className="space-y-0.5">
+                  <Label htmlFor="isVisible">Product Visibility</Label>
+                  <p className="text-xs text-muted-foreground">
+                      Show this product on your storefront.
+                  </p>
+              </div>
+              <Switch
+                  id="isVisible"
+                  {...form.register('isVisible')}
+              />
             </div>
           </form>
           <DialogFooter>
@@ -229,6 +255,18 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
                 <div className="space-y-2">
                     <Label htmlFor="imageHint-edit">Image Hint</Label>
                     <Input id="imageHint-edit" {...form.register('imageHint')} placeholder="e.g. blue shirt"/>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-3 mt-2">
+                    <div className="space-y-0.5">
+                        <Label htmlFor="isVisible-edit">Product Visibility</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Show this product on your storefront.
+                        </p>
+                    </div>
+                    <Switch
+                        id="isVisible-edit"
+                        {...form.register('isVisible')}
+                    />
                 </div>
             </form>
             <DialogFooter>
