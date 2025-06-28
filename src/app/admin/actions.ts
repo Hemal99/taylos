@@ -10,33 +10,33 @@ const productSchema = z.object({
     price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
     availableQuantity: z.coerce.number().int().min(0, 'Quantity must be a non-negative integer'),
     imageHint: z.string().optional(),
-    isVisible: z.coerce.boolean().default(false),
+    isVisible: z.boolean().default(false),
 });
 
 
-export async function addProductAction(data: FormData) {
-    const validatedFields = productSchema.safeParse(Object.fromEntries(data.entries()));
+export async function addProductAction(data: unknown) {
+    const validatedFields = productSchema.safeParse(data);
 
     if (!validatedFields.success) {
         return {
-            error: validatedFields.error.flatten().fieldErrors,
+            error: "Invalid data provided. Please check the form.",
         };
     }
 
     try {
-        await addProductToDb(validatedFields.data);
+        await addProductToDb(validatedFields.data as Omit<Product, 'id' | 'slug' | 'image'>);
         return { success: 'Product added successfully!' };
     } catch (e) {
         return { error: 'Failed to add product.' };
     }
 }
 
-export async function updateProductAction(id: string, data: FormData) {
-    const validatedFields = productSchema.safeParse(Object.fromEntries(data.entries()));
+export async function updateProductAction(id: string, data: unknown) {
+    const validatedFields = productSchema.safeParse(data);
 
     if (!validatedFields.success) {
         return {
-            error: validatedFields.error.flatten().fieldErrors,
+            error: "Invalid data provided. Please check the form.",
         };
     }
     

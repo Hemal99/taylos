@@ -28,7 +28,7 @@ export async function connectToDatabase(): Promise<{ db: Db | null }> {
     return { db };
 
   } catch (error) {
-    console.error("Failed to connect to MongoDB. Falling back to in-memory data. Please check your MONGODB_URI.");
+    console.warn("Failed to connect to MongoDB. Falling back to in-memory data. Please check your MONGODB_URI.");
     cachedClient = null;
     cachedDb = null;
     return { db: null };

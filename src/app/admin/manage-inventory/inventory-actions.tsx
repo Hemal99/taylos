@@ -34,6 +34,7 @@ import { MoreHorizontal, PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import { addProductAction, updateProductAction, deleteProductAction } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -65,7 +66,7 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             description: product.description,
             price: product.price,
             availableQuantity: product.availableQuantity,
-            imageHint: product.imageHint,
+            imageHint: product.imageHint || '',
             isVisible: product.isVisible,
           }
         : {
@@ -80,33 +81,19 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
 
   const onSubmit = (values: ProductFormValues) => {
     startTransition(async () => {
-      const formData = new FormData();
-      // Manually handle boolean for FormData
-      const { isVisible, ...otherValues } = values;
-      
-      Object.entries(otherValues).forEach(([key, value]) => {
-          formData.append(key, String(value));
-      });
-      
-      // The switch sends "on" when checked, which is what we need for the server action.
-      // If it's not checked, we don't append it, and the server action will use the default.
-      if (isVisible) {
-          formData.append('isVisible', 'on');
-      }
-
       const result =
         mode === 'add'
-          ? await addProductAction(formData)
-          : await updateProductAction(product!.id, formData);
+          ? await addProductAction(values)
+          : await updateProductAction(product!.id, values);
       
       if (result?.success) {
         toast({ title: 'Success', description: result.success });
         setIsFormOpen(false);
-        form.reset(
-          mode === 'add' ? { isVisible: true, name: '', description: '', price: 0, availableQuantity: 0, imageHint: '' } : undefined
-        );
+        if (mode === 'add') {
+          form.reset({ isVisible: true, name: '', description: '', price: 0, availableQuantity: 0, imageHint: '' });
+        }
       } else {
-        toast({ title: 'Error', description: "An unexpected error occurred.", variant: 'destructive' });
+        toast({ title: 'Error', description: result?.error || "An unexpected error occurred.", variant: 'destructive' });
       }
     });
   };
@@ -136,46 +123,33 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             <DialogTitle>Add New Product</DialogTitle>
             <DialogDescription>Fill in the details for the new product.</DialogDescription>
           </DialogHeader>
-          <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Product Name</Label>
-              <Input id="name" {...form.register('name')} />
-               {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" {...form.register('description')} />
-              {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
-            </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
-                <Input id="price" type="number" step="0.01" {...form.register('price')} />
-                {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
-                </div>
-                <div className="space-y-2">
-                <Label htmlFor="availableQuantity">Quantity</Label>
-                <Input id="availableQuantity" type="number" {...form.register('availableQuantity')} />
-                 {form.formState.errors.availableQuantity && <p className="text-sm text-destructive">{form.formState.errors.availableQuantity.message}</p>}
-                </div>
-            </div>
-             <div className="space-y-2">
-              <Label htmlFor="imageHint">Image Hint</Label>
-              <Input id="imageHint" {...form.register('imageHint')} placeholder="e.g. blue shirt"/>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border p-3 mt-2">
-              <div className="space-y-0.5">
-                  <Label htmlFor="isVisible">Product Visibility</Label>
-                  <p className="text-xs text-muted-foreground">
-                      Show this product on your storefront.
-                  </p>
+          <Form {...form}>
+            <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="description" render={({ field }) => (
+                <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="price" render={({ field }) => (
+                  <FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="availableQuantity" render={({ field }) => (
+                  <FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
               </div>
-              <Switch
-                  id="isVisible"
-                  {...form.register('isVisible')}
-              />
-            </div>
-          </form>
+              <FormField control={form.control} name="imageHint" render={({ field }) => (
+                <FormItem><FormLabel>Image Hint</FormLabel><FormControl><Input placeholder="e.g. blue shirt" {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={form.control} name="isVisible" render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3 mt-2">
+                  <div className="space-y-0.5"><FormLabel>Product Visibility</FormLabel><FormDescription>Show this product on your storefront.</FormDescription></div>
+                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                </FormItem>
+              )} />
+            </form>
+          </Form>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
             <Button type="submit" form="product-form" disabled={isPending}>
@@ -229,46 +203,33 @@ export function InventoryActions({ mode, product }: InventoryActionsProps) {
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>Update the details for "{product?.name}".</DialogDescription>
             </DialogHeader>
-            <form id="product-edit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="name-edit">Product Name</Label>
-                    <Input id="name-edit" {...form.register('name')} />
-                    {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="description-edit">Description</Label>
-                    <Textarea id="description-edit" {...form.register('description')} />
-                    {form.formState.errors.description && <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                    <Label htmlFor="price-edit">Price</Label>
-                    <Input id="price-edit" type="number" step="0.01" {...form.register('price')} />
-                     {form.formState.errors.price && <p className="text-sm text-destructive">{form.formState.errors.price.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                    <Label htmlFor="availableQuantity-edit">Quantity</Label>
-                    <Input id="availableQuantity-edit" type="number" {...form.register('availableQuantity')} />
-                     {form.formState.errors.availableQuantity && <p className="text-sm text-destructive">{form.formState.errors.availableQuantity.message}</p>}
-                    </div>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="imageHint-edit">Image Hint</Label>
-                    <Input id="imageHint-edit" {...form.register('imageHint')} placeholder="e.g. blue shirt"/>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border p-3 mt-2">
-                    <div className="space-y-0.5">
-                        <Label htmlFor="isVisible-edit">Product Visibility</Label>
-                        <p className="text-xs text-muted-foreground">
-                            Show this product on your storefront.
-                        </p>
-                    </div>
-                    <Switch
-                        id="isVisible-edit"
-                        {...form.register('isVisible')}
-                    />
-                </div>
-            </form>
+            <Form {...form}>
+              <form id="product-edit-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="price" render={({ field }) => (
+                      <FormItem><FormLabel>Price</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="availableQuantity" render={({ field }) => (
+                      <FormItem><FormLabel>Quantity</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                  </div>
+                  <FormField control={form.control} name="imageHint" render={({ field }) => (
+                    <FormItem><FormLabel>Image Hint</FormLabel><FormControl><Input placeholder="e.g. blue shirt" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="isVisible" render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3 mt-2">
+                      <div className="space-y-0.5"><FormLabel>Product Visibility</FormLabel><FormDescription>Show this product on your storefront.</FormDescription></div>
+                      <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                    </FormItem>
+                  )} />
+              </form>
+            </Form>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
                 <Button type="submit" form="product-edit-form" disabled={isPending}>

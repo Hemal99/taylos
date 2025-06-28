@@ -1,6 +1,7 @@
+
 'use client';
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from 'react';
 import { type CartItem, type Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,7 +32,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
-      setCartItems(JSON.parse(storedCart));
+        try {
+            const parsedCart = JSON.parse(storedCart);
+            if (Array.isArray(parsedCart)) {
+                setCartItems(parsedCart);
+            }
+        } catch (e) {
+            console.error("Failed to parse cart from localStorage", e);
+            setCartItems([]);
+        }
     }
   }, []);
 
@@ -39,7 +48,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
 
@@ -73,17 +82,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       title: "Added to cart",
       description: `${product.name} has been added to your cart.`,
     });
-  };
+  }, [toast]);
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = useCallback((productId: string) => {
     setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
     toast({
         title: "Item removed",
         description: "The item has been removed from your cart.",
     });
-  };
+  }, [toast]);
 
-  const updateQuantity = (productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number) => {
     const productInCart = cartItems.find(item => item.id === productId);
     if (productInCart && quantity > productInCart.availableQuantity) {
         toast({
@@ -104,11 +113,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         item.id === productId ? { ...item, quantity } : item
       )
     );
-  };
+  }, [cartItems, removeFromCart, toast]);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCartItems([]);
-  };
+  }, []);
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
