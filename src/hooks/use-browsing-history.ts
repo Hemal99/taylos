@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export const useBrowsingHistory = () => {
   const [history, setHistory] = useState<string[]>([]);
@@ -12,11 +12,16 @@ export const useBrowsingHistory = () => {
     }
   }, []);
 
-  const addProductToHistory = (productDescription: string) => {
-    const newHistory = [productDescription, ...history.filter(d => d !== productDescription)].slice(0, 5);
-    setHistory(newHistory);
-    localStorage.setItem('browsingHistory', JSON.stringify(newHistory));
-  };
+  const addProductToHistory = useCallback((productDescription: string) => {
+    setHistory(prevHistory => {
+      const newHistory = [
+        productDescription,
+        ...prevHistory.filter(d => d !== productDescription),
+      ].slice(0, 5);
+      localStorage.setItem('browsingHistory', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  }, []);
 
   return { history, addProductToHistory };
 };
