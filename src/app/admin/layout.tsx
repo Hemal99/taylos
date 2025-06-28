@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Package, ShoppingCart, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,6 +10,8 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 md:block">
@@ -22,14 +26,22 @@ export default function AdminLayout({
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               <Link
                 href="/admin/manage-inventory"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                  pathname.startsWith('/admin/manage-inventory') &&
+                    'bg-muted text-primary'
+                )}
               >
                 <Package className="h-4 w-4" />
                 Manage Inventory
               </Link>
               <Link
                 href="/admin/manage-orders"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                  pathname.startsWith('/admin/manage-orders') &&
+                    'bg-muted text-primary'
+                )}
               >
                 <ShoppingCart className="h-4 w-4" />
                 Manage Orders
