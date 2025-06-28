@@ -10,11 +10,14 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { processOrder } from '../actions';
+import { useTransition } from 'react';
 
 export default function CheckoutPage() {
   const { cartItems, cartTotal, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   const handlePlaceOrder = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +29,20 @@ export default function CheckoutPage() {
       });
       return;
     }
-    clearCart();
-    router.push('/order-confirmation');
+    
+    startTransition(async () => {
+        const result = await processOrder(cartItems);
+        if (result.success) {
+            clearCart();
+            router.push('/order-confirmation');
+        } else {
+            toast({
+                title: "Order Failed",
+                description: result.error || "There was an issue processing your order.",
+                variant: "destructive",
+            });
+        }
+    });
   };
 
   return (
@@ -97,8 +112,8 @@ export default function CheckoutPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" size="lg" disabled={cartItems.length === 0}>
-                Place Order
+              <Button type="submit" className="w-full" size="lg" disabled={cartItems.length === 0 || isPending}>
+                {isPending ? 'Processing...' : 'Place Order'}
               </Button>
             </CardFooter>
           </Card>

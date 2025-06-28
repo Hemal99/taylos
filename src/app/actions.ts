@@ -3,6 +3,8 @@
 
 import { productRecommendations } from '@/ai/flows/product-recommendations';
 import { getProductRecommendations as getProductRecommendationsFromHistory } from '@/ai/flows/product-recommendations-from-history';
+import { decreaseProductQuantity } from '@/lib/products';
+import { type CartItem } from '@/lib/types';
 
 export async function getRecommendations(productDescriptions: string[]) {
   try {
@@ -28,4 +30,18 @@ export async function getRecommendationsFromHistory(browsingHistory: string[]) {
     console.error(e);
     return { recommendations: null, error: e.message || "Failed to fetch recommendations." };
   }
+}
+
+export async function processOrder(cartItems: CartItem[]) {
+    try {
+        const itemsToDecrease = cartItems.map(item => ({
+            id: item.id,
+            quantity: item.quantity,
+        }));
+        decreaseProductQuantity(itemsToDecrease);
+        return { success: true, error: null };
+    } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.message || "Failed to process order." };
+    }
 }

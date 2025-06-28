@@ -1,6 +1,7 @@
+import { revalidatePath } from 'next/cache';
 import { type Product } from './types';
 
-const products: Product[] = [
+let products: Product[] = [
   {
     id: '1',
     name: 'Classic Denim Jacket',
@@ -9,6 +10,7 @@ const products: Product[] = [
     price: 89.99,
     image: 'https://placehold.co/600x600/5E7CE2/FFFFFF.png',
     imageHint: 'denim jacket',
+    availableQuantity: 10,
   },
   {
     id: '2',
@@ -16,8 +18,9 @@ const products: Product[] = [
     slug: 'linen-blend-shirt',
     description: 'Stay cool and stylish with this breathable linen-blend shirt. Ideal for warm weather, it offers a relaxed fit and a sharp look for any casual occasion.',
     price: 49.99,
-    image: 'https://placehold.co/600x600/F0EFEB/333333.png',
+    image: 'https://placehold.co/600x600/A2C4C3/FFFFFF.png',
     imageHint: 'linen shirt',
+    availableQuantity: 15,
   },
   {
     id: '3',
@@ -25,8 +28,9 @@ const products: Product[] = [
     slug: 'slim-fit-chinos',
     description: 'Versatile and modern slim-fit chinos that can be dressed up or down. Crafted from a soft-stretch cotton twill for all-day comfort and a perfect fit.',
     price: 64.99,
-    image: 'https://placehold.co/600x600/D2B48C/FFFFFF.png',
+    image: 'https://placehold.co/600x600/D2B48C/333333.png',
     imageHint: 'chinos pants',
+    availableQuantity: 20,
   },
   {
     id: '4',
@@ -36,6 +40,7 @@ const products: Product[] = [
     price: 129.99,
     image: 'https://placehold.co/600x600/5D4037/FFFFFF.png',
     imageHint: 'leather boots',
+    availableQuantity: 8,
   },
   {
     id: '5',
@@ -45,6 +50,7 @@ const products: Product[] = [
     price: 99.99,
     image: 'https://placehold.co/600x600/808080/FFFFFF.png',
     imageHint: 'wool sweater',
+    availableQuantity: 12,
   },
   {
     id: '6',
@@ -52,8 +58,9 @@ const products: Product[] = [
     slug: 'graphic-print-t-shirt',
     description: 'Express yourself with this unique graphic print t-shirt. Made from soft, high-quality cotton for a comfortable fit and feel, featuring a bold, artistic design.',
     price: 34.99,
-    image: 'https://placehold.co/600x600/212121/FFFFFF.png',
+    image: 'https://placehold.co/600x600/E57373/FFFFFF.png',
     imageHint: 'graphic t-shirt',
+    availableQuantity: 25,
   },
   {
     id: '7',
@@ -63,6 +70,7 @@ const products: Product[] = [
     price: 199.99,
     image: 'https://placehold.co/600x600/424242/FFFFFF.png',
     imageHint: 'wool blazer',
+    availableQuantity: 5,
   },
   {
     id: '8',
@@ -72,6 +80,7 @@ const products: Product[] = [
     price: 79.99,
     image: 'https://placehold.co/600x600/37474F/FFFFFF.png',
     imageHint: 'performance joggers',
+    availableQuantity: 18,
   },
 ];
 
@@ -79,6 +88,46 @@ export function getProducts(): Product[] {
   return products;
 }
 
+export function getProductById(id: string): Product | undefined {
+    return products.find((p) => p.id === id);
+}
+
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find((p) => p.slug === slug);
+}
+
+export function addProduct(productData: Omit<Product, 'id' | 'slug' | 'image'>) {
+    const newProduct: Product = {
+        ...productData,
+        id: (products.length + 1).toString(),
+        slug: productData.name.toLowerCase().replace(/\s+/g, '-'),
+        image: 'https://placehold.co/600x600/cccccc/FFFFFF.png',
+    };
+    products.push(newProduct);
+    revalidatePath('/admin/manage-inventory');
+    revalidatePath('/');
+    return newProduct;
+}
+
+export function updateProduct(id: string, productData: Partial<Product>) {
+    products = products.map(p => p.id === id ? { ...p, ...productData, slug: productData.name ? productData.name.toLowerCase().replace(/\s+/g, '-') : p.slug } : p);
+    revalidatePath('/admin/manage-inventory');
+    revalidatePath('/');
+    revalidatePath(`/product/${productData.slug}`);
+}
+
+export function deleteProduct(id: string) {
+    products = products.filter(p => p.id !== id);
+    revalidatePath('/admin/manage-inventory');
+    revalidatePath('/');
+}
+
+export function decreaseProductQuantity(items: { id: string; quantity: number }[]) {
+    items.forEach(item => {
+        const product = getProductById(item.id);
+        if (product) {
+            const newQuantity = product.availableQuantity - item.quantity;
+            updateProduct(item.id, { availableQuantity: newQuantity < 0 ? 0 : newQuantity });
+        }
+    });
 }

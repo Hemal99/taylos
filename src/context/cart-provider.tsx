@@ -42,13 +42,33 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = (product: Product) => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
+
       if (existingItem) {
+        if (existingItem.quantity >= product.availableQuantity) {
+            toast({
+                title: "Stock limit reached",
+                description: `You cannot add more of ${product.name} to the cart.`,
+                variant: "destructive"
+            });
+            return prevItems;
+        }
         return prevItems.map(item =>
           item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
+      
+      if (product.availableQuantity < 1) {
+        toast({
+            title: "Out of stock",
+            description: `${product.name} is currently out of stock.`,
+            variant: "destructive"
+        });
+        return prevItems;
+      }
+      
       return [...prevItems, { ...product, quantity: 1 }];
     });
+
     toast({
       title: "Added to cart",
       description: `${product.name} has been added to your cart.`,
@@ -60,15 +80,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     toast({
         title: "Item removed",
         description: "The item has been removed from your cart.",
-        variant: "destructive"
     });
   };
 
   const updateQuantity = (productId: string, quantity: number) => {
+    const productInCart = cartItems.find(item => item.id === productId);
+    if (productInCart && quantity > productInCart.availableQuantity) {
+        toast({
+            title: "Stock limit reached",
+            description: `Only ${productInCart.availableQuantity} of ${productInCart.name} available.`,
+            variant: "destructive"
+        });
+        return;
+    }
+
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
     }
+
     setCartItems(prevItems =>
       prevItems.map(item =>
         item.id === productId ? { ...item, quantity } : item
